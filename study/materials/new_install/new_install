@@ -1,0 +1,5 @@
+sudo apt-get install aptitude  chmsee dia xournal wireshark ssh unzip  ctags cscope git chromium-browser vim screen  ncurses-dev  build-essential libc6-dbg kernel-package pidgin  p7zip-full p7zip-rar gnuplot 
+
+sudo dpkg -i symbol－fonts_1.1_all.deb
+sudo dpkg -i wps-office_8.1.0.3724~b1p2_i386.deb
+
