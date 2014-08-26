@@ -1,0 +1,64 @@
+Linux Capabilities:making them work 
+Xiaoqiang Wang           2014.08.25     
+=========================================================
+
+	这篇论文介绍了权限（capability）如何提高Linux系统的安全性。
+	1.介绍
+	Linux帮助用户管理数据，并且一个单独的Linux系统可以管理几个用户的数据。在Linux文件系统中，在文件的属性中，有一个属性UID用来标识文件的所有者。为了支持对数据的所有权，Linux采用特定上下文的规则来限制程序可以如何操作特定用户的数据（这里的上下文指的是用户的UID）。
+	为了在Linux系统运行程序，申请用户通常需要利用一个程序（例如，login，sshd和gdm）来认证该用户在系统中的身份，并且给他们创建工作上下文，来调用其他的程序访问他们的数据。这些程序非常特殊，他们有着改变用户上下文的能力（即改变当前UID）。
+	DAC：在已认证的用户上下文中的程序，可以创建带有与这些用户相关的访问控制的数据，例如创建一个任何人都可以进行读的数据，创建一个只有创建这可以读和修改的文件等。这种形式的保护被称作DAC（Discretionary Access Control）。对这些数据的保护是由是由文件的所有者自主决定的。
+	MAC：另一种保护机制称为MAC（Mandatory Access Control），强制一个系统策略来限制用户共享他们的数据的方式。
+	所有的这些机制都继承了一个传统——尝试向Linux和UNIX中添加真正的安全性。
+	由于在现实世界中管理Linux系统的复杂性，导致系统必须提供一种可以推翻DAC和MAC的能力，来完成任务。一个可行的方式就是提供特权。运用特权的经典的UNIX模型分配给一个特殊的UID充足权限可以去做任何事情。在这个超级用户上下文中运行的程序不会受到DAC和MAC的限制，这个用户就是root用户。另外，相反由于在这种上下文中运行的程序会不可避免的破坏DAC和MAC的规则，这就可能会给系统造成不希望的破坏。例如，在root下使用，rm -rf /。
+	非特权级的用户有时必须执行一些特权级的操作。例如修改自己的用户密码，但是却不希望读或者修改其他用户的密码，用户执行一个程序代理他们，这个程序就是passwd，这个程序必须在普通用户的上下文中被调用，但是却有着足够的权限来操作共享的系统密码文件（/etc/shadow）。为了达到这个目的，Linux的可执行文件设置了一个特殊的属性setuid位，这意味着程序是利用EID即文件所有者的UID来执行的。因为passwd的所有者是root，所以程序在执行passwd时将会获得root权限,而不受DAC/MAC的影响。
+	2.Linux capability模型
+	UNIX的权限控制系统有一个明显的缺点：仅仅需要部分特权来执行的程序，却必须以完整的特权来执行。这个缺点可能会被别有用心的用户利用，因此最终人们提出了将root privilege分割为一个有意以的capability的集合。例如，在Linux中，切换UID的能力是由CAP_SETUID来决定的，而改变文件的所有者是由CAP_CHOWN来决定的。
+	在Linux中所有的事情都是由程序完成的，只有程序知道需要使用privilege去做什么，才能信任的使用这个privilege。UID为0的privilege模型，让privilege成为超级用户上下文的一个特点，并且任意的程序都可以做privileged的事情。capability仅仅限制那些使用filesystem-capabilities标记的程序可以使用那些哪些privilege。
+	2.1 Capability规则
+	进程和程序都有三个capability set，effetive,permitted和inheritable。effective set包含的capability集合用于进行privilege的检查，permitted set包含的capability可能会同过capset系统调用转移到effective set的集合中。但是effective set集合绝对不是permitted set的一个超集。inheritable set在文件执行的时候计算文件的capability set。capability首先在程序执行的时候建立，根据下面的公式：
+		pI' = pI					(1)
+		pP' = (X&fP) | (fI&pI)		(2)
+		pE' = fE?pP':Φ				(3)
+	这里的pI,pE,pP是进程在执行exec之前的inheritable，effective和permitted capability 集合。在执行exec之后，进程的capability set为pI'，pE'和pE'。将要执行的文件的capability set为fI，fE和fp。
+	3.例子
+	
+	3.1 Minimum privilege
+	$ cp /bin/ping .
+	$ ./ping -q -c1 localhost 			// will fail
+	# /sbin/setcap cap_net_raw=ep ./ping
+	# ./ping -q -c1 localhost 			//will succeed
+	
+	3.2 Inheritated privilege
+	有一些程序本身没有privilege，但是却在某些场景中使用它，例如，当它们被root调用的时候。这样的一个程序比如/bin/rm，当被root调用的时候，可以删除任何用户的文件。显然像上面的例子中那样，直接给rm添加file permitted bit同样会让任何的调用者删除任意的文件。例如：
+	# /sbin/setcap cap_dac_override=ep /bin/rm
+	在这里使用的是inheritable set（pI）。利用inheritable capability就是给/bin/rm添加file capability:
+	# /sbin/setcap cap_dac_override=ei /bin/rm
+	根据第（2）个公式，为了使用inheritable capability，一个进程必须首先获得它。可以使用下面的方法获得当前进程的inheritable capability：
+	# cat > /etc/security/su-caps.conf << EOT
+	>cap_dac_override	studadmin
+	>none				*
+	>EOT
+	# touch /etc/empty.file
+	将下面两行配置写入到/etc/pam.d/su文件：
+	auth optional pam.so \
+		config=/etc/security/su-caps.conf
+	执行下面的命令：
+	$ whoami
+	luser
+	$ su studadmin
+	Password:
+	$ whoami
+	studadmin
+	$ /sbin/getpcap $$
+	Capabilities for '11180': = cap_dac_override+i
+	$
+	然后删除/etc/empty文件：
+	$ rm /etc/empty.file
+	rm: remove write-protected regular file '/etc/empty.file' y
+	$ ls /etc/empty.file
+	ls: /etc/empty.file: No such file or directory
+	这个例子没有运行成功
+	
+	3.3 Bounding privilege
+	capability bounding set是每个进程都有的掩码，用来限制进程从file permitted set获得的capability。一个进程直接从它的父进程中继承bounding set。一个进程可以从bounding set中删除capability，只要它拥有CAP_SETPCAP capability就可以了。任何一个进程及其子进程只能从bounding set中删除capability，却不能向其添加capability。一个进程的permitted capability set可以接收没有包含在bounding set中的capability，因为根据第（2）个等式，可以看出只要capability同时存在于fI和pI中就可以了。因此，如果删除不想要的capability时，需要从bounding set和inheritable set同时删除。
+	当一个capability从bounding set和inheritable set中删除以后，就永远不会再出现在进程的permitted set中。
