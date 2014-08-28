@@ -43,7 +43,14 @@ IRC 服务器安装
 	8. 这样在任何位置直接输入 irqd 就可以俄启动irc服务器了。
 
 
+	服务器安装完成之后，在各个电脑上安装客户端 pidgin ,
+	$ sudo apt-get install pidgin
 
+	需要在客户端设置服务器的IP和端口号，端口号为8067
+
+	新建聊天室步骤：
+	Buddies --> Add chat --> 在弹出的窗口 Chanel 中输入 #聊天室名称
+	注意一定要在前面输入#号 
 
 
 
