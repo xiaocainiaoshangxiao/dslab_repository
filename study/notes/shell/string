@@ -1,0 +1,75 @@
+字符串操作
+王小强					2014-09-01
+=============================================
+
+1. 字符串的长度，例如：
+   *	$ var="get the length of me"
+	 	$ echo ${#var}
+		 20
+   *	$ expr length "$var"	#注意这里是双引号
+		 20
+   *	$ echo $var | awk '{printf("%d",length($0))}'
+		 20
+   * 	$ echo -n $var | wc -c		# echo每次输出时，会自动的输出换行符，-n表示部署出那一个换行符
+		 20
+ 
+2. 获取字符串中，某些字符的个数，例如
+   *	$ echo $var | tr -cd g | wc -c
+	     2
+		$ echo -n $var | sed 's/[^g]//g' | wc -c
+		 2
+		$ echo -n $var | sed 's/[^gt]//g' | wc -c
+		 5
+
+3. 统计单词的个数
+   * 	$ echo $var | wc -w
+
+4. bash提供的数组数据结构，它是以数字为下标的，和C语言从0开始的下一样：
+   *	$ var="get length of me"
+		$ var_arr=($var)	#这里把var字符串，以数组的形式存放到var_arr中，默认以空格分割
+		$ echo ${var_arr[0]} ${var_arr[1]} ${var_arr[2]} ${var_arr[3]} ${var_arr[4]}
+        get the length of me 
+        $ echo ${var_arr[@]} #@表示整个字符串
+		get the length of me
+        $ echo ${var_arr[*]} #*表示整个字符串
+        get the length of me
+        $ echo ${#var_arr[@]}#求得整个字符数组的元素个数
+        5
+		$ echo ${#var_arr[0]}#求得某个字符串的字符个数
+ 		3
+ 		$ var_arr[5]="new_element" #直接给数组元素赋值
+        $ echo ${var_arr[@]}
+   		get the length of me new_element
+		$ echo ${#var_arr[@]}
+		6
+	*	$ for i in $var; do echo $i" "; done;
+  		get the length of me
+
+5. awk里面的数组：
+	* echo $var | awk '{printf("%d %s\n",split($0,var_arr," "),var_arr[1])}'
+      split把字符串按照空格分割，存放到var_arr中，并返回数组的长度，注意，这里第一个元素的下标不是0，而是1。
+    * awk把一行按照空格分成若干个域，并用$1,$2,$3...来引用，$0表示整行,NF表示该行域的总数。
+    * echo $var | awk '{split($0,var_arr," ");for(i in var_arr) printf("%s ",var_arr[i]);}'
+      这里的for循环中，循环变量为下标
+    * echo $var | awk '{split($0,var_arr," ");delete var_arr[1]}'
+      删除第一个数组元素
+
+6. 取子串
+   * 	$ var="get length of me"
+		$ echo ${var:0:3}
+ 		get
+		$ echo ${var(-2)}	#反方向
+		me
+ 		$ echo `expr substr "$var" 5 3`
+ 		the
+ 		$ echo $var | awk '{printf("%s\n",substr($0,9,6))}' #从第九个位置开始选取6个字符
+		length
+	*	使用cut取子串
+		$ echo $var | cut -d " " -f 5
+		me
+	*	$ echo $var | sed 's/ [a-z]*//g'
+        get
+		删除空格+字母串
+		$ echo $var | sed 's/[a-z]* //g'
+		me
+		删除字母串+空格
