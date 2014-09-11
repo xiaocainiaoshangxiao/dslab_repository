@@ -73,3 +73,31 @@
 		$ echo $var | sed 's/[a-z]* //g'
 		me
 		删除字母串+空格
+
+7. 匹配求子串
+	* $ echo ${var%% *}	#从最右边开始，删除最左边空格右边的所有字符
+	  get
+	* $ echo ${var% *}	#从最右边开始，删除第一个空格右边的所有字符
+	  get the length of
+	* $ echo ${var##* }	#从最左边开始，删除最右边空格左边的所有字符
+	  me
+	* $ echo ${var#* }	#从最左边开始，删除第一个空格左边的所有字符
+	  the length of me
+
+8. sed有按行打印的功能，记得用tr把空格换为行号
+	* $ echo $var | tr " " "\n" | sed -n 5p
+	  me
+	* $ echo $var | tr " " "\n" | sed -n 1p
+	  get
+
+9. tr来取子串
+	* $ echo $var | tr -d " "
+	  getthelengthofme
+	* $ echo $var | tr -cd "[a-z]"	#仅仅保留字母
+	  getthelengthofme
+
+10. head和tail
+	* $ echo "abcdefghijk" | head -c 4 
+	  abcd
+	* $ echo "abcdefghijk" | tail -c 4
+	  hijk
