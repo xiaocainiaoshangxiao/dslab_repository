@@ -1,0 +1,127 @@
+<HTML>
+<BODY>
+ 	<CENTER>Document Review Notes</CENTER>
+Title: Machine Check Handling On Linux<BR>
+Author: Andi Kleen<BR>
+Date: Aug 2004<BR>
+Keywords: machine check, handler
+Sumary: 
+<P>
+This paper discusses some generic issues in handling MCEs in software 
+and covers the new recently rewritten x86-64 machine check handler
+<P>
+<UL>
+ <LI>What is a machine check
+  <UL>
+   <LI>A machine check is a hardware's way to tell you about internal errors</LI>
+   <LI>With a machine check, software has a chance to do something better</LI>
+   <LI>There are two main kinds of machine checks:
+    <UL>
+     <LI>Machine check exception(MCE): 
+      <UL>
+       <LI>It happens when there is an error that hardware cannot correct</LI>
+       <LI>It will cause the CPU to interrupt the current program and call 
+           a special exception handler</LI>
+      </UL>
+     </LI>
+     <LI>Silent machine check
+      <UL>
+       <LI>The hardware was able to correct the error</LI>
+       <LI>Log the event to internal registers,there the event
+           can be read by operating system or the firmware later</LI>
+       <LI>Don't need immediate software or administrator action,
+           but it is useful to log and analyze them to get early 
+           cues about hardware problem</LI>
+      </UL>
+     </LI>
+    </UL>
+   </LI>
+  </UL>
+ </LI>
+ <LI>Why they are important
+  <UL>
+   <LI>The number of transistors is growing and the feature size is 
+         shrinking with each chip generation,which both increase error rates</LI>
+   <LI>With a lot of machines,the mean time between failures is significantly 
+         decreased,which means error handling becomes more important</LI>
+   <LI>When an hardware error occurs on a node,the task run on it should fail
+         to prevent silent errors from being introduced into the computation
+    <UL>
+     <LI>When the kernel logs an uncorrected hardware error,the cluster software
+           can take corrective action,like rerunning the task on another node and 
+           reporting the failure to the adminisator</LI>
+    </UL> 
+   </LI>
+   <LI>The same issues apply on servers and high availabity clusters</LI>
+   <LI>Even on a desktop,silent errors should be avoided.It is better to tell 
+         the user that something went wrong due to hardware issue instead of silently
+         giving wrong results or crashing randomly</LI>
+   <LI>Sources of machine checks can be CPU,PCI,memory,caches,internal busses</LI>
+  </UL>
+ </LI>
+ <LI>Overview of x86 machine check architecture
+  <UL>
+   <LI>Machine check history
+    <UL>
+     <LI>The IBM PCs had parity memory and caused Non Maskable Interrupts(NMIs)
+         when a memory error occurred</LI>
+     <LI>With Intel Pentium,basic machine check handling was added to the CPU</LI>
+     <LI>With Pentium Pro,Intel defined a new generic x86 machine check architecture,
+         This architecture is implemented by modern x86 CPUs from Intel and AMD.
+         It consists of 
+      <UL>
+       <LI>a standard exception (interrupt 18) for machine checks</LI>
+       <LI>some standardized Machine Specific Registers(MSRs)</LI>
+       <LI>some more registers for each bank</LI>
+       <LI>Some CPUs like the Intel Pentium 4 also have extensions over the standard registers</LI>
+      </UL>
+     </LI>
+    </UL>
+   </LI>
+   <LI>Machine check architecture
+    <UL>
+     <LI>The advantage of this generic architecture is that a single machine check handler
+         can work on on many different CPUs</LI>
+     <LI>When an machine check is detected,the kernel reads all the generic machine check 
+         registers and the registers from any bank that signaled an error</LI>
+     <LI>The actual decoding and interpretation of the different errors is 
+         CPU dependent and up to the user</LI>
+     <LI>When a bank has valid error address,the handler can assume that the memory at 
+         this address got corrupted</LI>
+     <LI>The handler can take different action depending on if the error was corrected 
+         or not and if the error corrupted the CPU context</LI>
+    </UL>
+   </LI>
+  </UL>
+ </LI>
+ <LI>It is hard to write a machine check handler
+  <UL>
+   <LI>Cannot use any normal kernel services</LI>
+   <LI>It is also important to handle the machine check quickly
+       because the machine may become unstable after a hardware failure</LI>
+   <LI>machine check are asynchronous</LI>
+  </UL>
+ </LI>
+ <LI>Logging machine checks
+  <UL>
+   <LI>Traditionally machine checks were logged by the firmware.
+    <UL>
+     <LI>If the operating system does not have a machine check handler,
+         the MC registers will never be cleared</LI>
+     <LI>After the next warm reboot,the BIOS find the information from 
+         the last machine check and logs it to an event log</LI>
+     <LI>This methods has obvious shortcomings:
+      <UL>
+       <LI>the logging only happens when the machine is rebooted</LI>
+       <LI>it cannot log multiple errors in the banks</LI>
+       <LI>it is hard to collect this information in a network or save it to disk</LI>
+      <UL>
+     </LI>
+    </UL>
+   </LI>
+   <LI></LI>
+  </UL>
+ </LI>
+</UL>
+</BODY>
+</HTML>

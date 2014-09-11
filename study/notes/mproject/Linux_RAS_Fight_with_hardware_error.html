@@ -1,0 +1,207 @@
+<HTML>
+<BODY>
+    <CENTER>Document Review Notes</CENTER>
+Title: Linux RAS:Fight with hardware error<BR>
+Author: Huang Ying<BR>
+Date: Oct 2010<BR>
+Keywords: machine check, RAS, APEI
+Sumary:
+<P>
+This presentation describes ways used to log hardware error and 
+recover hardware error
+<P>
+<UL>
+ <LI>What is RAS
+  <UL>
+   <LI>Reliability: Features that help avoid and detect hardware faults</LI>
+   <LI>Availability: Amount of time a device is actually operating as the
+       percentage of total time it should be operating</LI>
+   <LI>Serviceability: Takes the form of various methods of easily diagnosing 
+       the system when problem arise</LI>
+  </UL>
+ </LI>
+ <LI>Why we need RAS
+  <UL>
+   <LI>Essential for linux to be used in mission critical environment(bank,stock trading)</LI>
+   <LI>Hardware error becomes more common with bigger system(clusters,cloud computing) and more transistor</LI>
+   <LI>Error reporting is even good for desktop.</LI>
+  </UL>
+ </LI>
+ <LI>RAS processing
+  <UL>
+   <LI>Hardware detects the error,report it to the linux</LI>
+   <LI>Linux hardware error handler collect information from hardware,
+       may trigger error recovery for some urgent recoverable errors</LI>
+   <LI>Linux hardware error recoverer isolate/swap broken hardware</LI>
+   <LI>Linux recovery policy daemon accounts errors for harware components,
+       trigger recovery action accordingly</LI>
+  </UL>
+ </LI>
+ <LI>Hardware Error Severity
+  <UL>
+   <LI>Corrected: Corrected by hardware, 1 bit error for ECC memory</LI>
+   <LI>Uncorrected:
+    <UL>
+     <LI>Recoverable: Recoverable by software,isolate the fault memory page</LI>
+     <LI>Fatal: Have to halt or reboot the system</LI>
+    </UL>
+   </LI>
+  </UL>
+ </LI>
+ <LI>Machine Check: Hardware machnism
+  <UL>
+   <LI>Report CPU, QPI and memory errors(corrected and uncorrected)</LI>
+   <LI>Uncorrected errors are notified via exception 18</LI>
+   <LI>Corrected errors are notified via interrupt or poll</LI>
+   <LI>Deliver error information with a set of MSRs(model specific register):
+       severity, error code, fault memory address</LI>
+  </UL>
+ </LI>
+ <LI>Machine check:Exception handler
+  <UL>
+   <LI>Collect error information from MSRs</LI>
+   <LI>Put error record into internal lock-less buffer</LI>
+   <LI>If servity is recoverable
+    <UL>
+     <LI>Kill current process if necessary</LI>
+     <LI>Notify recoverer</LI>
+    </UL>
+   </LI>
+   <LI>Otherwise severity is fatal:	
+    <UL>
+     <LI>Save error into record if possible</LI>
+     <LI>Panic and reboot to log</LI>
+    </UL>
+   </LI>
+  </UL>
+ </LI>
+ <LI>Machine Check: IRQ handler or poller
+  <UL>
+   <LI>Collect error information from MSRs</LI>
+   <LI>Put error record into internal lock-less buffer</LI>
+  </UL>
+ </LI>
+ <LI>Machine Check: mcelog
+  <UL>
+   <LI>Get error code from kernel lock-less buffer or flash</LI>
+   <LI>Decode error record</LI>
+   <LI>Save error record to disk or network</LI>
+   <LI>Account errors for hardware components</LI>
+   <LI>If exceed threshold
+    <UL>
+     <LI>Trigger error recovery operation</LI>
+    </UL>
+   </LI>
+  </UL>
+ </LI>
+ <LI>APEI
+  <UL>
+   <LI>APEI:ACPI(Advanced Configuration and Power Management Interface) Platform Error Interface
+    <UL>
+     <LI>Described by several ACPI tables</LI>
+    </UL>
+   </LI>
+   <LI>Error logging with APEI
+    <UL>
+     <LI>Hardware detect error, report to firmware instead of linux</LI>
+     <LI>Firmware collect error information, then report to linux </LI>
+    </UL>
+   </LI>
+   <LI>Why need APEI
+    <UL>
+     <LI>Can report non-standardized(chipset,etc) error
+      <UL>
+       <LI>Chipset errors are hard to be standardized like machine check,
+           chipset drivers are tedious</LI>
+      </UL>
+     </LI>
+     <LI>More complete error information
+      <UL>
+       <LI>Can access non-standard registers for standardized error</LI>
+       <LI>Firmware is more flexible than hardware</LI>
+      </UL>
+     </LI>
+    </UL>
+   </LI>
+  </UL>
+ </LI>
+ <LI>Hardware error recovering
+  <UL>
+   <LI>Halt,reboot: prevent the corrupted data goes disk</LI>
+   <LI>Hardware Poison: isolate the poisoned error memory page
+    <UL>
+     <LI>Background
+      <UL>
+       <LI>Example: Patrol scrub
+        <UL>
+         <LI>Memory controller detect corrupted page in the
+             background, such as 2 bit ECC error</LI>
+         <LI>Mark corrupted page as poisoned in hardware and
+             notify system with MCE</LI>
+         <LI>Further accessing to the page will trigger MCE.
+             Need kill the process</LI>
+        </UL>
+       </LI>
+      </UL>
+     </LI>
+     <LI>Recovering
+      <UL>
+       <LI>Mark page as bad</LI>
+       <LI>Unmap page from the processes using the page, mark
+           page table entry as poisoned, process will be killed
+           when access the poisoned address later</LI>
+       <LI>Send SIGBUS to the processes optionally</LI>
+       <LI>Process based on page type
+        <UL>
+         <LI>Clean page/swap cache: drop the cache</LI>
+         <LI>Free page: refuse to be allocated because marked bad</LI>
+         <LI>Anonymous page: kill the process if accessed</LI>
+         <LI>Dirty page cache: mark IO error, try drop the cache</LI>
+         <LI>Other pages: ignore, hope we are lucky</LI>
+        </UL>
+       </LI>
+      </UL>
+     </LI>
+    </UL>
+   </LI>
+   <LI>Memory hotplug/hotremove: offline/swap the error memory</LI>
+   <LI>CPU hotplug/hotremove:offline/swap the error CPU</LI>
+   <LI>PCI hotplug: offline/replace the error PCI card</LI>
+   <LI>Predictive Failure Analysis: predict error trend, and
+       replace potential bad components</LI>
+  </UL>
+ </LI>
+ <LI>Predictive Fault Analysis
+  <UL>
+   <LI>Observation
+    <UL> 
+     <LI>Hard uncorrected errors are often preceded by
+         corrected errors</LI>
+    </UL>
+   </LI>
+   <LI>Idea
+    <UL>
+     <LI>Stop using component in advance</LI>
+    </UL>
+   </LI>
+   <LI>PFA: bad page offlining
+    <UL>
+     <LI>Memory controller detect corrected error, report it to
+         Linux via MCE or APEI</LI>
+     <LI>Kernel error handler collect error information, save
+         error record in lock-less buffer</LI>
+     <LI>Mcelog get error record from kernel lock-less buffer</LI>
+     <LI>Mcelog account errors for each page</LI>
+     <LI>If exceed threshold, trigger page offlining
+      <UL>
+       <LI>similar with hardware poison recovering, can write back
+           dirty page, because we can touch them here</LI>
+      </UL>
+     </LI>
+    </UL>
+   </LI>
+  </UL>
+ </LI>
+</UL>
+</BODY>
+</HTML>
