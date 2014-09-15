@@ -101,3 +101,33 @@
 	  abcd
 	* $ echo "abcdefghijk" | tail -c 4
 	  hijk
+
+11. 查询字串
+	* $ var="get the length of me"
+	  $ expr index "$var" t
+	  3
+	* $ echo $var | awk '{printf("%d\n",match($0,"the"));}'
+	  5
+
+12. 子串替换
+	* $ var="get the length of me"
+	  $ echo ${var/ /_}		#把第一个空格替换成下划线
+	  get_the length of me
+	  $ echo ${var// /_}	#把所有的空格都替换成下划线
+	  get_the_length_of_me
+	  $ echo $var | awk '{sub(" ","_",$0);printf("%s\n",$0);}'
+	  get_the length of me
+	  $ echo $var | awk '{gsub(" ","_",$0);printf("%s\n",$0);}'
+	  get_the_length_of_me
+	  $ echo $var | sed 's/ /_/'
+	  get_the length of me
+	  $ echo $var | tr " " "_"
+	  get_the_length_of_me
+	  $ echo $var | tr "[a-z]" "[A-Z]"
+	  GET THE LENGTH OF ME
+
+13. tac 会将文本的内容倒置显示，正如名字和 cat 相反一样，
+	功能和cat也是相反的
+
+14. 插入子串
+	*  
