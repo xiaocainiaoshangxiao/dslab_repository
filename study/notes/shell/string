@@ -130,4 +130,55 @@
 	功能和cat也是相反的
 
 14. 插入子串
-	*  
+	*  	$ var="get the length of me"
+		$ echo ${var/ /_ }		#在第一个空格前加上_
+		get_ the length of me
+		$ echo ${var// /_ }		#在所有的空格前都加上_
+		get_ the_ length_ of_ me
+		$ echo ${var/ / _}
+		get _the length of me
+		$ echo ${var// / _}		#在所有的空格之后都加上_
+		get _the _length _of _me
+		
+	*	$ echo $var | sed 's/\( \)/\1_/'	#在第一个空格之后加上_
+		get _the length of me
+		$ echo $var | sed 's/\( \)/\1_/g'
+		get _the _length _of _me
+		$ echo $var | sed 's/\([a-z]*\) \([a-z]*\)/\2 \1/'	#调换get和the的位置
+		the get length of me
+
+15. 删除子串
+	*	$ var="get the length of me"
+		$ echo ${var// /}
+		getthelengthofme
+
+	*	$ echo $var | awk '{gsub(" ","",$0);printf("%s",$0);}'
+		getthelengthofme
+
+	*	$ echo $var | sed 's/ //g'
+		getthelengthofme
+
+	*	$ echo $var | tr -d " "
+		getthelengthofme
+
+16. 子串比较使用test命令
+
+17. 子串排序
+	*	$ echo $var | tr " " "\n" | sort	#正排序
+		get
+		length
+		me
+		of
+		the
+		$ echo $var | tr " " "\n" | sort -r
+		the
+		of
+		me
+		length
+		get
+	*	$ cat data.txt | tr " " "\n" | sort -n
+
+18. 进制转换
+	*	$ echo "ibase=10;obase=16;10" | bc
+	A
+
