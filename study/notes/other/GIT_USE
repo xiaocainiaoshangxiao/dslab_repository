@@ -13,3 +13,5 @@ git 的使用
    其中NUMBER为要恢复到的版本，也就是执行git log
    时，后面出现的一长串ID。
 
+3. 查看某个文件的详细信息:
+   git log -p filename
