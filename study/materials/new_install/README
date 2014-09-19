@@ -1,4 +1,0 @@
-this directory include some things that are used for configuring the new_install debian system.
-	the wps version is wps-office_8.1.0.3724~b1p2_i386.deb,this file is so big that can't push into the repository
-	run with ./install
-
