@@ -1,5 +1,5 @@
 ifneq ($(KERNELRELEASE),)
-	obj-m:=get_hz.o
+	obj-m:=get_hz.o test_tsc.o
 else
 	KERNELDIR=/lib/modules/$(shell uname -r)/build
 	PWD=$(shell pwd)
