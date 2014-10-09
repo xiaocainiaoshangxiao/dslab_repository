@@ -57,3 +57,12 @@
 
 10.shift 每次都将命令行参数向左移动一个，因此当前要处理的参数总为$1
 
+11.在使用bc进行进制转换的时候，涉及到将十六进制的数字转换为其他进制
+   时，十六进制的表示中的A-F均需要大写，且十六进制数前不需要使用0x，
+   且需要先写obase，再写ibase。例如：
+   $ echo "obase=10;ibase=16;12a" | bc
+   (standard_in) 1: syntax error
+   $ echo "obase=10;ibase=16;12A" | bc
+   298
+   $ echo "ibase=16;obase=10;12A" | bc
+   12A
