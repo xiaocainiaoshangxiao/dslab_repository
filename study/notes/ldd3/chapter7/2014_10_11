@@ -1,0 +1,103 @@
+Time， Delays， and Deferred Work（一）-- ldd3读书笔记
+   
+   ldd3已经看到了第七章，现在想做一下笔记，以便将来查询使用。
+就先从第七章开始，前面看过内容的笔记会在将来补上。
+
+   虽然学习完了前面六章的内容，也基本上可以写出一些像模像样
+驱动程序了，但是驱动程序中还必须处理像时间，内存管理，硬件访
+问等一些细节性的问题。我们首先学习时间管理，内容包括：
+
+   * 测量流逝的时间和比较时间
+
+   * 获取当前的时间
+
+   * 在指定的一段延迟时间之后执行一个操作
+
+   * 调度一个异步的函数在后来的某个时间执行
+ 
+   1. 记录时间的流逝
+   
+   内核通过定时器中断来测量时间。定时器中断是系统计时硬件按
+照有规律的时间间隔不断产生的，这个时间间隔是在系统启动时，由
+内核根据HZ的值来编程确定的。HZ就是我们所熟知的频率，这个值是
+依赖于具体的架构的，定义在文件<linux/param.h>中或者是一个被
+这个文件包括的子平台的文件中。大多数平台上这个值是100或者1000，
+x86平台默认的是1000，但是这也不一定，比如我的电脑是Intel Core2
+显然是x86架构的，但是HZ的值却为250，是不是很逗啊。稍候会给出
+测试当前平台上HZ的值的一个模块。在这里需要强调的一点是，尽管
+你知道HZ的值，但是在编写程序的时候，也不能直接将HZ的具体值写
+入程序中，这就是传说中的硬编码，正确的做法是使用HZ，而不是250。
+   
+   当然用户可以修改HZ的值，这就需要重新编译内核，例如在使用
+命令： make menuconfig 时，在子菜单 ->Processor type and 
+features -> Timer frequency中进行设置，在我的系统里面，可选的
+值包括100，250，300和1000。如果你不知道怎么去选择这个值，那
+么最好让这个值保留为默认值。
+
+   每当一个时钟中断发生时，内核内部的计数器就加一。这个计数器
+在系统启动的时候被初始化为0，所以它表示的是自系统启动以来发生
+的时钟中断的次数。这个计数器是一个64位的变量，即使在32位的系统
+上也是64位的，因此被称作jiffies_64。然而驱动程序程序员通常访问
+的是jiffies变量，它是一个unsigned long类型的变量，要么就是
+jiffies_64变量，要么是jiffies_64的最低有效位。访问jiffies通常
+更加的高效，并且访问jiffies_64类型的变量不能保证在所有的平台上
+都是原子操作。
+
+   下面的模块示例了如何获取HZ的值：
+
+    #include <linux/jiffies.h>
+    #include <linux/init.h>
+    #include <linux/module.h>
+    
+    static int __init hz_init(void)
+    {
+        printk("get_hz initialization...\n");
+        printk("HZ:%d\n",HZ);
+        return 0;
+    }
+    
+    static void __exit hz_exit(void)
+    {
+        printk("get_hz exit...");
+        return;
+    }
+    
+    module_init(hz_init);
+    module_exit(hz_exit);
+    
+    MODULE_LICENSE("GPL");
+    MODULE_AUTHOR("wxq");
+
+   2. 使用jiffies
+
+   jiffies，jiffies_64以及用来读取这些变量的函数存在于头文件
+<linux/jiffies.h>中，当然jiffies和jiffies_64都是只读的。当
+需要获取当前的jiffies时，我们只需要直接访问jiffies变量就可以
+了。例如：
+
+    #include <linux/jiffies.h>
+    
+    unsigned long j,stamp_1,stamp_half,stamp_n;
+    /* 获取当前的jiffies */
+    j = jiffies;
+    /* 1s后的jiffies值 */
+    stamp_1 = j + HZ;
+    /* 半秒后的jiffies值 */
+    stamp_half = j + HZ/2;
+    /* n 毫秒后的jiffies值 */
+    stamp_n = jiffies + n*HZ/1000;
+
+   这个变量用volatile修饰，每次访问都直接从内存读取。在32位
+的机器上，HZ为1000的情况下，jiffies溢出需要50天。为了比较
+上面的代码中指定的stamp_1，stamp_half和stamp_n和当前jiffies
+的大小，需要使用下面的函数：
+
+    #include <linux/jiffies.h>
+    /* a所代表的时间在b之后 */
+    int time_after(unsigned long a,unsigned long b);
+    /* a所代表的时间是否在b之前 */
+    int time_before(unsigned long a,unsigned long b);
+    /* a所代表的时间是否在b之后，或者和b表示的时间相同 */
+    int time_after_eq(unsigned long a,unsigned long b);
+    int time_before_eq(unsigned long a,unsigned long b);
+
