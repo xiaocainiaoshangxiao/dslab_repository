@@ -1,0 +1,6 @@
+1. 当需要在标题中加入参考文献时，如果使用下面的方法
+	\subsection{Title of This Section\cite{ref}}
+   会造成ref标识出现在目录中，实在是影响美观。
+   因此采用保护若命令的措施
+	\subsection[Title of This Section]
+	{Title of This Section \protect\cite{ref}}
