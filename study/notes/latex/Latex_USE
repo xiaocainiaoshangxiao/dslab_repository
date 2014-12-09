@@ -29,3 +29,6 @@
 \end{figure}
 \end{columns}  %分栏环境结束
 \end{frame}  
+
+3. 表格中添加脚注
+在tabular环境中添加脚注，不能简单地使用\footnote{……}。应该在要添加脚注的地方使用\footnotemark[n]标记，其中n表示脚注的编号；在\end{table}环境外则用\footnotetext[n]{……}填入脚注内容，注意这里的[n]应该与表格中的\footnotemark中的[n]一一对应。
